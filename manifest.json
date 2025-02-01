@@ -1,0 +1,28 @@
+{
+  "manifest_version": 3,
+  "name": "Distraction-Free TikTok",
+  "version": "1.0",
+  "description": "Hides the For You page, comments, related videos, and disables autoplay.",
+  "permissions": ["activeTab"],
+  "content_scripts": [
+    {
+      "matches": ["*://www.tiktok.com/*"],
+      "js": ["content.js"]
+    }
+  ],
+  "icons": {
+    "16": "default_icon.png",
+    "36": "default_icon.png",
+    "48": "default_icon.png",
+    "128": "default_icon.png"
+  },
+  "action": {
+    "default_popup": "popup.html",
+    "default_icon": {
+      "16": "default_icon.png",
+      "36": "default_icon.png",
+      "48": "default_icon.png",
+      "128": "default_icon.png"
+    }
+  }
+}
