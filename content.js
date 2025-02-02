@@ -1,93 +1,19 @@
 console.log("✅ content.js is running on TikTok!");
 
-// 🎯 Function to hide elements without breaking layout
-function hideElement(selector) {
-    const element = document.querySelector(selector);
-    if (element) {
-        element.style.display = "none";
-        console.log(`🚫 Hiding element: ${selector}`);
-    } else {
-        console.log(`❌ Element not found: ${selector}`);
-    }
+// 🎯 Function to check if the user is on a specific page
+function isSearchResultsPage() {
+    return window.location.pathname.includes("/search");
 }
 
-// 🎯 Function to block For You Page while keeping navigation buttons
-function blockForYouPage() {
-    const forYouPage = document.querySelector(".css-3xtvlt-DivColumnListContainer.ettyzn40");
-
-    if (forYouPage) {
-        console.log("✅ For You Page found, blocking content...");
-        forYouPage.style.display = "none";
-
-        let existingMessage = document.getElementById("focusMessageFYP");
-        if (existingMessage) existingMessage.remove();
-
-        let message = document.createElement("div");
-        message.id = "focusMessageFYP";
-        message.style.cssText = `
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            height: 100vh;
-            width: calc(100vw - 240px); /* Adjust so sidebar is visible */
-            position: fixed;
-            top: 0;
-            left: 240px;
-            font-size: 24px;
-            font-weight: bold;
-            color: #fff;
-            background-color: black;
-            text-align: center;
-            z-index: 9999;
-        `;
-        message.innerText = "🔵 Stay Focused – The For You Page is blocked by Distraction-Free TikTok.";
-        document.body.appendChild(message);
-    } else {
-        console.log("❌ For You Page container not found.");
-    }
+function isExplorePage() {
+    return window.location.pathname.includes("/explore");
 }
 
-// 🎯 Function to block Explore Page while keeping navigation buttons
-function blockExplorePage() {
-    const explorePage = document.querySelector(".css-1yczxwx-DivBodyContainer.e1rlp0w0") ||
-                        document.querySelector("[id='main-content-explore_page']");
-
-    if (explorePage) {
-        console.log("✅ Explore Page found, blocking content...");
-        explorePage.style.display = "none";
-
-        let existingMessage = document.getElementById("focusMessageExplore");
-        if (existingMessage) existingMessage.remove();
-
-        let message = document.createElement("div");
-        message.id = "focusMessageExplore";
-        message.style.cssText = `
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            height: 100vh;
-            width: calc(100vw - 240px);
-            position: fixed;
-            top: 0;
-            left: 240px;
-            font-size: 24px;
-            font-weight: bold;
-            color: #fff;
-            background-color: black;
-            text-align: center;
-            z-index: 9999;
-        `;
-        message.innerText = "🔵 Stay Focused – The Explore Page is blocked by Distraction-Free TikTok.";
-        document.body.appendChild(message);
-
-        // 🌟 EXTRA FIX: Ensure we remove any background videos
-        stopExploreAutoplay();
-    } else {
-        console.log("❌ Explore Page container not found.");
-    }
+function isForYouPage() {
+    return window.location.pathname === "/";
 }
 
-// 🚫 Improved Autoplay Blocker (Allows User Clicks)
+// 🚫 **Disable Autoplay for ALL Videos**
 function disableAutoplay() {
     console.log("🚫 Disabling autoplay...");
 
@@ -97,90 +23,170 @@ function disableAutoplay() {
         video.pause();
         video.autoplay = false;
         video.removeAttribute("autoplay");
+        video.muted = true;
+        video.playbackRate = 0;
 
-        // Prevent autoplay, but allow user-initiated play
         video.addEventListener("play", function (event) {
-            if (!event.isTrusted) { // Ensures only user-initiated actions are allowed
+            if (!event.isTrusted) {
                 console.log("⛔ Autoplay attempt blocked!");
                 event.target.pause();
+                event.target.muted = true;
+                event.target.playbackRate = 0;
             }
         });
 
         console.log("✅ Autoplay disabled on a video");
     });
-
-    // Explicitly stop background autoplay videos
-    stopExploreAutoplay();
 }
 
-// 🚫 Function to block background autoplay on the Explore Page
-function stopExploreAutoplay() {
-    console.log("🚫 Stopping background autoplay videos on Explore Page...");
+// 🚫 **Fix For You Page Autoplay When Switching Back**
+document.addEventListener("visibilitychange", function () {
+    if (!document.hidden && isForYouPage()) {
+        console.log("🔄 Tab became active. Re-blocking autoplay...");
+        disableAutoplay();
+    }
+});
 
-    const exploreVideos = document.querySelectorAll(".css-xyz-BackgroundVideoContainer video, .css-explore-featured video");
+// 🚫 **Stop Explore Page Autoplay**
+function stopExploreAutoplay() {
+    console.log("🚫 Stopping Explore Page autoplay...");
+
+    if (!isExplorePage()) {
+        return;
+    }
+
+    const exploreVideos = document.querySelectorAll("video");
+
     exploreVideos.forEach(video => {
         video.pause();
         video.autoplay = false;
         video.removeAttribute("autoplay");
-
-        console.log("✅ Background autoplay video disabled.");
+        video.muted = true;
+        video.playbackRate = 0;
+        console.log("⛔ Explore page video autoplay blocked.");
     });
-}
 
-// 🔄 MutationObserver to Catch Any New Autoplaying Videos
-const videoObserver = new MutationObserver(mutations => {
-    mutations.forEach(mutation => {
-        mutation.addedNodes.forEach(node => {
-            if (node.tagName === "VIDEO") {
-                console.log("🔍 New video detected! Disabling autoplay...");
-                disableAutoplay();
-            }
+    const observer = new MutationObserver(mutations => {
+        mutations.forEach(mutation => {
+            mutation.addedNodes.forEach(node => {
+                if (node.tagName === "VIDEO") {
+                    console.log("🔍 New Explore video detected! Blocking autoplay...");
+                    node.pause();
+                    node.autoplay = false;
+                    node.removeAttribute("autoplay");
+                    node.muted = true;
+                    node.playbackRate = 0;
+                }
+            });
         });
     });
-});
-videoObserver.observe(document.body, { childList: true, subtree: true });
 
-// 🚀 Run immediately on page load
-window.addEventListener("load", disableAutoplay);
+    observer.observe(document.body, { childList: true, subtree: true });
+}
 
-// 🚫 Function to block right-side comments when clicking a video
-function blockRightSideComments() {
-    const rightSideComments = document.querySelector(".css-123-UiRightSideComments");
-    if (rightSideComments) {
-        rightSideComments.style.display = "none";
-        console.log("🚫 Right-side comments hidden.");
-    } else {
-        console.log("❌ Right-side comments not found.");
+// 🎯 **Create Double-Layer Blocking Background (Fix Navigation UI)**
+function createBlockingOverlay(pageName) {
+    let existingFullBackground = document.getElementById("fullBlackBackground");
+    let existingOverlay = document.getElementById("blockingOverlay");
+
+    // ✅ Layer 1: Full-Page Black Background (Covers All Videos, Lower Z-Index)
+    if (!existingFullBackground) {
+        let fullBackground = document.createElement("div");
+        fullBackground.id = "fullBlackBackground";
+        fullBackground.style.cssText = `
+            position: fixed;
+            top: 0;
+            overlay.style.left = "300px";  // Increased from 280px to ensure full clearance
+            overlay.style.width = "calc(100vw - 300px)";  // Prevents overlap with sidebar
+            height: 100vh;
+            background-color: black;
+            z-index: 9997; /* Lower than UI elements */
+        `;
+        document.body.appendChild(fullBackground);
+    }
+
+    // ✅ Layer 2: Message Overlay (Allows UI Elements to Stay Visible)
+    if (!existingOverlay) {
+        let overlay = document.createElement("div");
+        overlay.id = "blockingOverlay";
+        overlay.style.cssText = `
+            position: fixed;
+            top: 0;
+            left: 280px; /* Adjusted for navigation buttons */
+            width: calc(100vw - 280px);
+            height: 100vh;
+            background-color: black;
+            z-index: 9998; /* Below UI elements but above background */
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 22px;
+            font-weight: bold;
+            color: #fff;
+            text-align: center;
+            padding: 20px;
+            line-height: 1.5;
+        `;
+        overlay.innerText = `🔵 Stay Focused – The ${pageName} is blocked by Distraction-Free TikTok.`;
+        document.body.appendChild(overlay);
     }
 }
 
-// 🎯 Function to ensure the left sidebar remains visible
-function ensureLeftSidebar() {
-    const sidebar = document.querySelector(".css-1ssz0ba-DivSideNavContainer"); // Adjust selector if needed
-    if (sidebar) {
-        sidebar.style.display = "block"; // Ensure it remains visible
-        console.log("✅ Left sidebar remains visible.");
-    } else {
-        console.log("❌ Left sidebar not found, check selector.");
+// 🎯 **Block For You Page**
+function replaceForYouPage() {
+    if (isSearchResultsPage()) {
+        console.log("🔎 Search results detected, skipping For You Page block.");
+        return;
     }
+
+    console.log("✅ Blocking For You Page...");
+    createBlockingOverlay("For You Page");
 }
 
-// 🎯 Observe dynamically added videos & page reloads
+// 🎯 **Block Explore Page**
+function blockExplorePage() {
+    if (isSearchResultsPage()) {
+        console.log("🔎 Search results detected, skipping Explore Page block.");
+        return;
+    }
+
+    console.log("✅ Blocking Explore Page...");
+    createBlockingOverlay("Explore Page");
+}
+
+// 🎯 **Adjust Background for Search Bar**
+function adjustForSearchBar() {
+    const searchBar = document.querySelector("input[type='text']");
+    const overlay = document.getElementById("blockingOverlay");
+
+    if (!searchBar || !overlay) {
+        console.log("❌ Search bar or blocking overlay not found.");
+        return;
+    }
+
+    searchBar.addEventListener("focus", () => {
+        console.log("🔎 Search bar focused, adjusting layout...");
+        overlay.style.left = "360px"; // Further adjusted for search dropdown
+        overlay.style.width = "calc(100vw - 360px)";
+    });
+
+    searchBar.addEventListener("blur", () => {
+        console.log("🔎 Search bar unfocused, resetting layout...");
+        overlay.style.left = "280px"; // Restore original width
+        overlay.style.width = "calc(100vw - 280px)";
+    });
+}
+
+// 🎯 **Monitor dynamically loaded videos & page reloads**
 const observer = new MutationObserver(mutations => {
     mutations.forEach(mutation => {
         mutation.addedNodes.forEach(node => {
             if (node.tagName === "VIDEO") {
                 console.log("🔍 New video detected! Disabling autoplay...");
                 disableAutoplay();
-            } else if (node.classList?.contains("css-3xtvlt-DivColumnListContainer")) {
-                console.log("🔄 For You Page reloaded, replacing again...");
-                blockForYouPage();
-            } else if (node.classList?.contains("css-1yczxwx-DivBodyContainer")) {
-                console.log("🔄 Explore Page reloaded, replacing again...");
-                blockExplorePage();
-            } else if (node.classList?.contains("css-123-UiRightSideComments")) {
-                console.log("🔄 Right-side comments reloaded, hiding again...");
-                blockRightSideComments();
+            } else if (isExplorePage()) {
+                console.log("🔄 Explore Page reloaded, stopping autoplay...");
+                stopExploreAutoplay();
             }
         });
     });
@@ -188,21 +194,11 @@ const observer = new MutationObserver(mutations => {
 
 observer.observe(document.body, { childList: true, subtree: true });
 
-// 🚀 Run immediately on page load
+// 🎯 **Run on Page Load**
 window.addEventListener("load", () => {
-    blockForYouPage();
+    replaceForYouPage();
     blockExplorePage();
-    ensureLeftSidebar();
-    hideElement(".css-x4xlc7-DivCommentContainer"); // Hide Bottom Comments
-    blockRightSideComments(); // Hide Right-Side Comments
-    hideElement(".css-xyz-DivRelatedVideos"); // Hide Related Videos
     disableAutoplay();
-});
-
-// 🔄 Stop autoplay when switching back to TikTok tab
-document.addEventListener("visibilitychange", function () {
-    if (!document.hidden) {
-        console.log("🔄 Tab became active. Checking autoplay...");
-        disableAutoplay();
-    }
+    stopExploreAutoplay();
+    adjustForSearchBar();
 });
