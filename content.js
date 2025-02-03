@@ -1,204 +1,211 @@
 console.log("✅ content.js is running on TikTok!");
 
-// 🎯 Function to check if the user is on a specific page
+// ─── 1. OVERRIDE VIDEO AUTOPLAY SETTING ─────────────────────────────
+// Prevent any script from later setting the autoplay attribute.
+const originalSetAttribute = HTMLMediaElement.prototype.setAttribute;
+HTMLMediaElement.prototype.setAttribute = function(name, value) {
+  if (name.toLowerCase() === "autoplay") {
+    console.log("⛔ Blocked setting autoplay on", this);
+    return;
+  }
+  return originalSetAttribute.call(this, name, value);
+};
+
+// ─── 2. PAGE DETECTION HELPERS ─────────────────────────────────────────
 function isSearchResultsPage() {
-    return window.location.pathname.includes("/search");
+  return window.location.pathname.includes("/search");
 }
-
 function isExplorePage() {
-    return window.location.pathname.includes("/explore");
+  return window.location.pathname.includes("/explore");
 }
-
 function isForYouPage() {
-    return window.location.pathname === "/";
+  return window.location.pathname === "/";
 }
 
-// 🚫 **Disable Autoplay for ALL Videos**
-function disableAutoplay() {
-    console.log("🚫 Disabling autoplay...");
+// ─── 3. BLOCKING OVERLAY MANAGEMENT ─────────────────────────────────────
+// This function creates (or re-displays) the blocking overlay for the specified page.
+// The overlay only covers the main content (from 390px from the left onward), so your
+// left navigation remains visible.
+function createBlockingOverlay(pageType) {
+  let overlayId =
+    pageType === "For You Page" ? "focusMessageFYP" :
+    pageType === "Explore Page" ? "focusMessageExplore" :
+    "focusMessageOverlay";
+    
+  let existing = document.getElementById(overlayId);
+  if (existing) {
+    // If the overlay exists (or was re-inserted), ensure it’s visible.
+    existing.style.display = "flex";
+    return;
+  }
+  
+  const overlay = document.createElement("div");
+  overlay.id = overlayId;
+  overlay.style.cssText = `
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+    width: calc(100vw - 390px);  /* leave left 390px for navigation */
+    position: fixed;
+    top: 0;
+    left: 390px;
+    font-size: 24px;
+    font-weight: bold;
+    color: #fff;
+    background-color: rgba(0, 0, 0, 0.85);
+    backdrop-filter: blur(8px);
+    text-align: center;
+    z-index: 99999;
+  `;
+  overlay.innerText = `🔵 Stay Focused – The ${pageType} is blocked by Distraction-Free TikTok.`;
+  document.body.appendChild(overlay);
+  console.log(`✅ Blocking overlay for "${pageType}" created.`);
 
+  // In case TikTok or another script removes the overlay, observe and re-add it.
+  const overlayObserver = new MutationObserver((mutations) => {
+    mutations.forEach((mutation) => {
+      mutation.removedNodes.forEach((node) => {
+        if (node === overlay) {
+          console.warn(`⚠️ Overlay ${overlayId} was removed – re-adding it.`);
+          createBlockingOverlay(pageType);
+        }
+      });
+    });
+  });
+  overlayObserver.observe(document.body, { childList: true });
+}
+
+/* 
+4. AUTOPLAY BLOCKING
+   Updated: Now, on the Explore page, every attempt to play a video is logged and blocked,
+   even after page refresh, with a continuous check for any playing videos.
+*/
+
+// Disable autoplay for a single video element.
+function disableAutoplayOnVideo(video) {
+    if (!video) return;
+    // Immediately pause and remove autoplay attributes.
+    video.pause();
+    video.autoplay = false;
+    video.removeAttribute("autoplay");
+    video.muted = true;
+    video.playbackRate = 0;
+    // Add an event listener if not already added.
+    if (!video.hasAttribute("data-autoplay-blocked")) {
+      video.addEventListener("play", function (event) {
+        if (isExplorePage()) {
+          console.log("⛔ Blocking autoplay attempt on Explore page video:", video);
+          video.pause();
+        } else if (!event.isTrusted) {
+          console.log("⛔ Autoplay attempt blocked on video:", video);
+          video.pause();
+        }
+      });
+      video.setAttribute("data-autoplay-blocked", "true");
+    }
+  }
+  
+  // Disable autoplay on all current video elements.
+  function disableAutoplay() {
     const videos = document.querySelectorAll("video");
-
-    videos.forEach(video => {
-        video.pause();
-        video.autoplay = false;
-        video.removeAttribute("autoplay");
-        video.muted = true;
-        video.playbackRate = 0;
-
-        video.addEventListener("play", function (event) {
-            if (!event.isTrusted) {
-                console.log("⛔ Autoplay attempt blocked!");
-                event.target.pause();
-                event.target.muted = true;
-                event.target.playbackRate = 0;
-            }
-        });
-
-        console.log("✅ Autoplay disabled on a video");
-    });
-}
-
-// 🚫 **Fix For You Page Autoplay When Switching Back**
-document.addEventListener("visibilitychange", function () {
-    if (!document.hidden && isForYouPage()) {
-        console.log("🔄 Tab became active. Re-blocking autoplay...");
-        disableAutoplay();
-    }
-});
-
-// 🚫 **Stop Explore Page Autoplay**
-function stopExploreAutoplay() {
-    console.log("🚫 Stopping Explore Page autoplay...");
-
-    if (!isExplorePage()) {
-        return;
-    }
-
-    const exploreVideos = document.querySelectorAll("video");
-
-    exploreVideos.forEach(video => {
-        video.pause();
-        video.autoplay = false;
-        video.removeAttribute("autoplay");
-        video.muted = true;
-        video.playbackRate = 0;
-        console.log("⛔ Explore page video autoplay blocked.");
-    });
-
-    const observer = new MutationObserver(mutations => {
-        mutations.forEach(mutation => {
-            mutation.addedNodes.forEach(node => {
-                if (node.tagName === "VIDEO") {
-                    console.log("🔍 New Explore video detected! Blocking autoplay...");
-                    node.pause();
-                    node.autoplay = false;
-                    node.removeAttribute("autoplay");
-                    node.muted = true;
-                    node.playbackRate = 0;
-                }
-            });
-        });
-    });
-
-    observer.observe(document.body, { childList: true, subtree: true });
-}
-
-// 🎯 **Create Double-Layer Blocking Background (Fix Navigation UI)**
-function createBlockingOverlay(pageName) {
-    let existingFullBackground = document.getElementById("fullBlackBackground");
-    let existingOverlay = document.getElementById("blockingOverlay");
-
-    // ✅ Layer 1: Full-Page Black Background (Covers All Videos, Lower Z-Index)
-    if (!existingFullBackground) {
-        let fullBackground = document.createElement("div");
-        fullBackground.id = "fullBlackBackground";
-        fullBackground.style.cssText = `
-            position: fixed;
-            top: 0;
-            overlay.style.left = "300px";  // Increased from 280px to ensure full clearance
-            overlay.style.width = "calc(100vw - 300px)";  // Prevents overlap with sidebar
-            height: 100vh;
-            background-color: black;
-            z-index: 9997; /* Lower than UI elements */
-        `;
-        document.body.appendChild(fullBackground);
-    }
-
-    // ✅ Layer 2: Message Overlay (Allows UI Elements to Stay Visible)
-    if (!existingOverlay) {
-        let overlay = document.createElement("div");
-        overlay.id = "blockingOverlay";
-        overlay.style.cssText = `
-            position: fixed;
-            top: 0;
-            left: 280px; /* Adjusted for navigation buttons */
-            width: calc(100vw - 280px);
-            height: 100vh;
-            background-color: black;
-            z-index: 9998; /* Below UI elements but above background */
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            font-size: 22px;
-            font-weight: bold;
-            color: #fff;
-            text-align: center;
-            padding: 20px;
-            line-height: 1.5;
-        `;
-        overlay.innerText = `🔵 Stay Focused – The ${pageName} is blocked by Distraction-Free TikTok.`;
-        document.body.appendChild(overlay);
-    }
-}
-
-// 🎯 **Block For You Page**
-function replaceForYouPage() {
-    if (isSearchResultsPage()) {
-        console.log("🔎 Search results detected, skipping For You Page block.");
-        return;
-    }
-
-    console.log("✅ Blocking For You Page...");
-    createBlockingOverlay("For You Page");
-}
-
-// 🎯 **Block Explore Page**
-function blockExplorePage() {
-    if (isSearchResultsPage()) {
-        console.log("🔎 Search results detected, skipping Explore Page block.");
-        return;
-    }
-
-    console.log("✅ Blocking Explore Page...");
-    createBlockingOverlay("Explore Page");
-}
-
-// 🎯 **Adjust Background for Search Bar**
-function adjustForSearchBar() {
-    const searchBar = document.querySelector("input[type='text']");
-    const overlay = document.getElementById("blockingOverlay");
-
-    if (!searchBar || !overlay) {
-        console.log("❌ Search bar or blocking overlay not found.");
-        return;
-    }
-
-    searchBar.addEventListener("focus", () => {
-        console.log("🔎 Search bar focused, adjusting layout...");
-        overlay.style.left = "360px"; // Further adjusted for search dropdown
-        overlay.style.width = "calc(100vw - 360px)";
-    });
-
-    searchBar.addEventListener("blur", () => {
-        console.log("🔎 Search bar unfocused, resetting layout...");
-        overlay.style.left = "280px"; // Restore original width
-        overlay.style.width = "calc(100vw - 280px)";
-    });
-}
-
-// 🎯 **Monitor dynamically loaded videos & page reloads**
-const observer = new MutationObserver(mutations => {
+    videos.forEach(video => disableAutoplayOnVideo(video));
+  }
+  
+  // On the Explore page, continuously check every 500ms for any playing video and pause it.
+  if (isExplorePage()) {
+    setInterval(() => {
+      document.querySelectorAll("video").forEach(video => {
+        if (!video.paused) {
+          console.log("⛔ Detected playing video on Explore page, pausing:", video);
+          video.pause();
+        }
+      });
+    }, 500);
+  }
+  
+  // Observe for newly added video elements and disable autoplay on them.
+  const videoObserver = new MutationObserver(mutations => {
     mutations.forEach(mutation => {
-        mutation.addedNodes.forEach(node => {
-            if (node.tagName === "VIDEO") {
-                console.log("🔍 New video detected! Disabling autoplay...");
-                disableAutoplay();
-            } else if (isExplorePage()) {
-                console.log("🔄 Explore Page reloaded, stopping autoplay...");
-                stopExploreAutoplay();
-            }
-        });
+      mutation.addedNodes.forEach(node => {
+        if (node.nodeType === Node.ELEMENT_NODE) {
+          if (node.tagName === "VIDEO") {
+            console.log("🔍 New video element detected.");
+            disableAutoplayOnVideo(node);
+          } else {
+            const vids = node.querySelectorAll ? node.querySelectorAll("video") : [];
+            vids.forEach(video => {
+              console.log("🔍 New video (inside added node) detected.");
+              disableAutoplayOnVideo(video);
+            });
+          }
+        }
+      });
     });
-});
+  });
+  videoObserver.observe(document.body, { childList: true, subtree: true });
+  
+  // Reapply autoplay blocking when the tab becomes active.
+  document.addEventListener("visibilitychange", function () {
+    if (!document.hidden) {
+      console.log("🔄 Tab became active, re-disabling autoplay...");
+      disableAutoplay();
+    }
+  });
 
-observer.observe(document.body, { childList: true, subtree: true });
+// ─── 5. SEARCH BAR LISTENERS ─────────────────────────────────────────────
+// When the search bar is focused, raise the search dropdown above the overlay.
+function adjustSearchDropdownZIndex() {
+  const searchDropdown = document.querySelector(".css-1x87i4d-DivDrawerContainer.e1lvfea00.drawer-enter-done");
+  if (searchDropdown) {
+    searchDropdown.style.zIndex = "100000";  // ensure it sits above the overlay
+    searchDropdown.style.position = "relative";
+    console.log("🔎 Elevated search dropdown above overlay.");
+  }
+}
+function setupSearchBarListeners() {
+  const searchBar = document.querySelector("input[type='text']");
+  if (searchBar) {
+    searchBar.addEventListener("focus", () => {
+      console.log("🔎 Search bar focused.");
+      adjustSearchDropdownZIndex();
+    });
+    // Optionally, reset the dropdown styling on blur if needed.
+    searchBar.addEventListener("blur", () => {
+      console.log("🔎 Search bar unfocused.");
+      const searchDropdown = document.querySelector(".css-1x87i4d-DivDrawerContainer.e1lvfea00.drawer-enter-done");
+      if (searchDropdown) {
+        searchDropdown.style.zIndex = "";
+        searchDropdown.style.position = "";
+      }
+    });
+  }
+}
 
-// 🎯 **Run on Page Load**
+// ─── 6. PAGE BLOCKING FUNCTIONS ─────────────────────────────────────────
+// Block the For You Page (unless on search results) and the Explore Page.
+function blockForYouPage() {
+  if (isSearchResultsPage()) {
+    console.log("🔎 Search results detected, skipping For You Page block.");
+    return;
+  }
+  console.log("✅ Blocking For You Page...");
+  createBlockingOverlay("For You Page");
+}
+function blockExplorePage() {
+  if (isSearchResultsPage()) {
+    console.log("🔎 Search results detected, skipping Explore Page block.");
+    return;
+  }
+  console.log("✅ Blocking Explore Page...");
+  createBlockingOverlay("Explore Page");
+}
+
+// ─── 7. INITIALIZATION ON PAGE LOAD ─────────────────────────────────────
 window.addEventListener("load", () => {
-    replaceForYouPage();
-    blockExplorePage();
-    disableAutoplay();
-    stopExploreAutoplay();
-    adjustForSearchBar();
+  console.log("🚀 Running page load functions...");
+  blockForYouPage();
+  blockExplorePage();
+  disableAutoplay();
+  setupSearchBarListeners();
 });
