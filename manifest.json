@@ -5,9 +5,22 @@
   "description": "Hides the For You page, comments, related videos, and disables autoplay.",
   "permissions": ["activeTab"],
   "content_scripts": [
+  {
+    "matches": ["*://www.tiktok.com/*"],
+    "js": [
+      "dist/content.js",
+      "dist/autoplayControl.js",
+      "dist/blockingOverlay.js",
+      "dist/pageDetection.js",
+      "dist/searchBarListeners.js"
+    ],
+    "run_at": "document_end"
+  }
+],
+  "web_accessible_resources": [
     {
-      "matches": ["*://www.tiktok.com/*"],
-      "js": ["content.js"]
+      "resources": ["dist/bundle.js"],
+      "matches": ["*://www.tiktok.com/*"]
     }
   ],
   "icons": {

@@ -1,0 +1,27 @@
+{
+  "name": "tiktok_extension",
+  "version": "1.0.0",
+  "type": "module",
+  "description": "🚀 A Chrome extension that removes distractions from TikTok, helping social media managers stay focused by blocking the For You Page, disabling autoplay, hiding comments, and removing related videos.",
+  "main": "popup.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "build": "rollup -c"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/concernedsebster/Distraction-Free-TikTok.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/concernedsebster/Distraction-Free-TikTok/issues"
+  },
+  "homepage": "https://github.com/concernedsebster/Distraction-Free-TikTok#readme",
+  "devDependencies": {
+    "@rollup/plugin-commonjs": "^28.0.2",
+    "@rollup/plugin-node-resolve": "^16.0.0",
+    "rollup": "^4.34.2"
+  }
+}

@@ -15,7 +15,7 @@ AUTOPLAY BLOCKING
 */
 
 // Disable autoplay for a single video element.
-export function disableAutoplayOnVideo(video) {
+window.disableAutoplayOnVideo = function(video) {
   if (!video) return;
   // Immediately pause and remove autoplay attributes.
   video.pause();
@@ -39,7 +39,7 @@ export function disableAutoplayOnVideo(video) {
 }
 
 // Disable autoplay on all current video elements.
-export function disableAutoplay() {
+window.disableAutoplay = function () {
   const videos = document.querySelectorAll("video");
   videos.forEach(video => disableAutoplayOnVideo(video));
 }
