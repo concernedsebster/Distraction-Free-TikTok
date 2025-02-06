@@ -1,25 +1,26 @@
-console.log("✅ content.js is running on TikTok!");
-console.log("Module URL:", import.meta.url); // Should log a chrome-extension:// URL
-
 window.addEventListener("load", () => {
   console.log("🚀 Running page load functions...");
 
-  // List all module names (matching how functions are attached to `window`)
+  if (!window.blockingOverlay) {
+    console.warn("⚠️ blockingOverlay module is missing at load time. Some functions may not work.");
+  } else if (!window.blockingOverlay.isExplorePage) {
+    console.warn("⚠️ isExplorePage() is missing in blockingOverlay.");
+  }
+
   const moduleNames = [
     "blockingOverlay",
     "autoplayControl",
     "searchBarListeners"
   ];
 
-  // Loop through each module name and call all functions within it
   moduleNames.forEach((moduleName) => {
     if (window[moduleName]) {
-      Object.values(window[moduleName]).forEach((fn) => {
-        if (typeof fn === "function") {
+      Object.entries(window[moduleName]).forEach(([fnName, fn]) => {
+        if (typeof fn === "function" && fnName !== "init") { // ✅ Skip calling init() here
           try {
-            fn(); // Call each function dynamically
+            fn();
           } catch (error) {
-            console.error(`❌ Error calling function in module ${moduleName}:`, error);
+            console.error(`❌ Error calling function ${fnName} in module ${moduleName}:`, error);
           }
         }
       });
