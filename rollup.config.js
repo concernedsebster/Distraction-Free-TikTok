@@ -1,18 +1,17 @@
 import resolve from '@rollup/plugin-node-resolve';
-import commonjs from '@rollup/plugin-commonjs';
 
 export default {
-  input: [
-    'src/content/content.js',
-    'src/background.js',
-    'src/inject.js'
-  ],
+  input: {
+    content: 'src/content/content.js',
+    blockingOverlay: 'src/content/blockingOverlay.js',
+    autoplayControl: 'src/content/autoplayControl.js',
+    searchBarListeners: 'src/content/searchBarListeners.js',
+    background: 'src/background.js',
+  },
   output: {
     dir: 'dist',
-    format: 'esm',
+    format: 'esm',  // ✅ Ensures compatibility with Chrome
     entryFileNames: '[name].js',
-    exports: "named",
-    preserveModules: false,
   },
-  plugins: [commonjs(), resolve()],
+  plugins: [resolve()],
 };

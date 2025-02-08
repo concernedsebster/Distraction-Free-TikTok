@@ -14,7 +14,12 @@
   "content_scripts": [
   {
     "matches": ["*://www.tiktok.com/*"],
-    "js": ["dist/inject.js"],
+    "js": [
+      "dist/blockingOverlay.js",
+      "dist/autoplayControl.js",
+      "dist/searchBarListeners.js",
+      "dist/content.js"
+    ],
     "run_at": "document_end"
   }
 ],
