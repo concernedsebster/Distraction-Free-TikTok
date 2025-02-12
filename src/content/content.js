@@ -1,3 +1,15 @@
+console.log("🚀 Waiting for blockingOverlay.js to load...");
+
+(function waitForBlockingOverlay() {
+  if (window.blockingOverlay && typeof window.blockingOverlay.createBlockingOverlay === "function") {
+    console.log("✅ blockingOverlay.js is now available!");
+    window.blockingOverlay.createBlockingOverlay();
+  } else {
+    console.warn("⏳ blockingOverlay.js not ready yet, retrying...");
+    setTimeout(waitForBlockingOverlay, 50);  // Retry every 50ms
+  }
+})();
+
 console.log("✅ All modules loaded. Running content.js...");
 
 window.addEventListener("load", () => {
