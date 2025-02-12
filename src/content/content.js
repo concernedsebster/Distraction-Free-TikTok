@@ -1,28 +1,15 @@
-function waitForModules(callback) {
-  const requiredModules = ["blockingOverlay", "autoplayControl", "searchBarListeners"];
-  const checkInterval = setInterval(() => {
-    const missingModules = requiredModules.filter(module => !window[module]);
-    
-    if (missingModules.length === 0) {
-      clearInterval(checkInterval);
-      console.log("✅ All modules loaded. Running content.js...");
-      callback(); // Run main logic
-    } else {
-      console.warn(`⏳ Waiting for modules: ${missingModules.join(", ")}`);
-    }
-  }, 100);
-}
+console.log("✅ All modules loaded. Running content.js...");
 
-// Wait until all modules are available before running content.js
-waitForModules(() => {
+window.addEventListener("load", () => {
   console.log("🚀 Running page load functions...");
+
   const moduleNames = ["blockingOverlay", "autoplayControl", "searchBarListeners"];
 
   moduleNames.forEach((moduleName) => {
     if (window[moduleName]) {
-      console.log(`✅ Found module: ${moduleName}`);
       Object.entries(window[moduleName]).forEach(([fnName, fn]) => {
-        if (typeof fn === "function" && fnName !== "init") {
+        // ✅ Prevent calling createBlockingOverlay() directly
+        if (typeof fn === "function" && fnName !== "init" && fnName !== "createBlockingOverlay") { 
           try {
             console.log(`▶️ Calling ${moduleName}.${fnName}()`);
             fn();

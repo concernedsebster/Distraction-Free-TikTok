@@ -3,7 +3,14 @@ window.blockingOverlay = {
   isExplorePage: function() {
     return window.location.pathname.includes("/explore");
   },
+
+  isSearchResultsPage: function() {
+    return window.location.pathname.includes("/search");
+  },
+
   createBlockingOverlay: function(pageType) {
+    console.log("🛠️ createBlockingOverlay() was called with pageType:", pageType);
+
     let overlayId =
       pageType === "For You Page" ? "focusMessageFYP" :
       pageType === "Explore Page" ? "focusMessageExplore" :
@@ -14,7 +21,7 @@ window.blockingOverlay = {
       existing.style.display = "flex";
       return;
     }
-    
+
     const overlay = document.createElement("div");
     overlay.id = overlayId;
     overlay.style.cssText = `
@@ -38,14 +45,14 @@ window.blockingOverlay = {
     document.body.appendChild(overlay);
     console.log(`✅ Blocking overlay for "${pageType}" created.`);
 
-    // Observe for removal
+    // Observe for removal and re-add if necessary
     if (document.body) {
       const overlayObserver = new MutationObserver((mutations) => {
         mutations.forEach((mutation) => {
           mutation.removedNodes.forEach((node) => {
             if (node === overlay) {
               console.warn(`⚠️ Overlay ${overlayId} was removed – re-adding it.`);
-              window.blockingOverlay.createBlockingOverlay(pageType);
+              window.blockingOverlay.createBlockingOverlay(overlayId.includes("FYP") ? "For You Page" : "Explore Page");
             }
           });
         });
@@ -54,25 +61,28 @@ window.blockingOverlay = {
     }
   },
 
-  isSearchResultsPage: function() {
-    return window.location.pathname.includes("/search");
-  },
-
   blockForYouPage: function() {
-    if (window.blockingOverlay.isSearchResultsPage()) {
+    if (window.blockingOverlay.isSearchResultsPage()) {  // ✅ FIX: Directly reference `window.blockingOverlay`
       console.log("🔎 Search results detected, skipping For You Page block.");
       return;
     }
-    console.log("✅ Blocking For You Page...");
+    console.log("🛠️ Calling createBlockingOverlay() with: For You Page");
     window.blockingOverlay.createBlockingOverlay("For You Page");
   },
 
   blockExplorePage: function() {
-    if (window.blockingOverlay.isSearchResultsPage()) {
+    if (window.blockingOverlay.isSearchResultsPage()) {  // ✅ FIX: Directly reference `window.blockingOverlay`
       console.log("🔎 Search results detected, skipping Explore Page block.");
       return;
     }
-    console.log("✅ Blocking Explore Page...");
+    console.log("🛠️ Calling createBlockingOverlay() with: Explore Page");
     window.blockingOverlay.createBlockingOverlay("Explore Page");
   }
 };
+
+// Automatically block the correct page on load
+if (window.blockingOverlay.isExplorePage()) {
+  window.blockingOverlay.blockExplorePage();
+} else {
+  window.blockingOverlay.blockForYouPage();
+}
