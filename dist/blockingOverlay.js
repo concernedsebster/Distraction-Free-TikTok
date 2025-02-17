@@ -1,17 +1,23 @@
 (function() {
   console.log("✅ blockingOverlay.js is running!");
 
+  // Ensure `window.blockingOverlay` exists
   if (!window.blockingOverlay) {
     window.blockingOverlay = {};
   }
 
   Object.assign(window.blockingOverlay, {
-    isExplorePage: function() {
-      return window.location.pathname.includes("/explore");
+    isSearchResultsPage: function() {
+      return window.location.pathname.startsWith("/search");
     },
 
-    isSearchResultsPage: function() {
-      return window.location.pathname.includes("/search");
+    isVideoPage: function() {
+      return window.location.pathname.includes("/video/");
+    },
+
+    isProfilePage: function() {
+      // Detects if the path is structured like a username (e.g., `/@sebdoesbetter`)
+      return /^\/@[a-zA-Z0-9_.-]+$/.test(window.location.pathname);
     },
 
     createBlockingOverlay: function() {
@@ -49,33 +55,19 @@
       console.log(`✅ Blocking overlay created.`);
     },
 
-    blockForYouPage: function() {
-      if (window.blockingOverlay.isSearchResultsPage()) {  
-        console.log("🔎 Search results detected, skipping block.");
+    blockPage: function() {
+      if (this.isSearchResultsPage() || this.isVideoPage() || this.isProfilePage()) {  
+        console.log("✅ Not blocking this page (Search, Video, or Profile Page).");
         return;
       }
       console.log("🛠️ Blocking page with generic overlay.");
-      window.blockingOverlay.createBlockingOverlay();
-    },
-
-    blockExplorePage: function() {
-      if (window.blockingOverlay.isSearchResultsPage()) {  
-        console.log("🔎 Search results detected, skipping block.");
-        return;
-      }
-      console.log("🛠️ Blocking page with generic overlay.");
-      window.blockingOverlay.createBlockingOverlay();
+      this.createBlockingOverlay();
     }
   });
 
   console.log("✅ blockingOverlay.js is fully initialized!");
 
   // ✅ Automatically block pages on load
-  if (window.blockingOverlay.isExplorePage() || window.location.pathname.includes("/")) { 
-    console.log("🛑 Blocking this page with a standard overlay.");
-    window.blockingOverlay.createBlockingOverlay();
-  } else {
-    console.log("✅ Not blocking this page (Search Results or other).");
-  }
+  window.blockingOverlay.blockPage();
 
 })();
