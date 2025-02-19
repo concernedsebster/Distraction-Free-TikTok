@@ -15,12 +15,18 @@
   {
     "matches": ["*://www.tiktok.com/*"],
     "js": [
-      "dist/blockingOverlay.js",
+      "dist/blockingOverlay.js"
+    ],
+    "run_at": "document_end"
+  },
+  {
+    "matches": ["*://www.tiktok.com/*"],
+    "js": [
       "dist/autoplayControl.js",
       "dist/searchBarListeners.js",
       "dist/content.js"
     ],
-    "run_at": "document_start"
+    "run_at": "document_idle"
   }
 ],
 "web_accessible_resources": [

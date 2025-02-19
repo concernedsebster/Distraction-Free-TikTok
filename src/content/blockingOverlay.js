@@ -1,3 +1,6 @@
+console.log("✅ blockingOverlay.js is running!");
+console.log("window.blockingOverlay at start:", window.blockingOverlay);
+
 window.blockingOverlay = window.blockingOverlay || {};
 
 (function() {
@@ -49,3 +52,10 @@ window.blockingOverlay = window.blockingOverlay || {};
 
   window.blockingOverlay.create = createBlockingOverlay;
 })();
+
+window.blockingOverlay = window.blockingOverlay || {
+  create: createBlockingOverlay
+};
+
+// ✅ Notify content.js that blockingOverlay is ready
+document.dispatchEvent(new Event("blockingOverlayReady"));
